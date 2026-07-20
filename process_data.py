@@ -1,4 +1,6 @@
-"""
+
+
+   """
 process_data.py
 ---------------
 Downloads IDEAL_TRANSPORT_CONNECTION.csv and FACILITY_MAPPER.csv from
@@ -35,7 +37,7 @@ FACILITY_LOCAL  = "facility.csv"
 
 def download(file_id: str, dest: str) -> None:
     url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, dest, quiet=False, fuzzy=True)
+    gdown.download(url, dest, quiet=False)
     if not os.path.exists(dest) or os.path.getsize(dest) == 0:
         raise RuntimeError(f"Download failed or empty: {dest}")
 
@@ -62,7 +64,7 @@ def main() -> None:
         TRANSPORT_LOCAL,
         usecols=transport_cols,
         low_memory=False,
-        dtype=str,       # read everything as string to avoid type issues
+        dtype=str,
     )
     print(f"   Total rows loaded: {len(transport):,}")
 
