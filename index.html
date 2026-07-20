@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ideal Transport Connections</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0f4c81 0%, #1a73e8 100%);
+      color: white;
+      padding: 18px 24px 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    }
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header .meta {
+      font-size: 12px;
+      opacity: 0.75;
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; display: inline-block; }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 16px 48px;
+    }
+
+    /* ── Filters ── */
+    .filter-card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px 24px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      margin-bottom: 28px;
+    }
+    .filter-card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 620px) {
+      .filter-row { grid-template-columns: 1fr; }
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 7px;
+    }
+    .filter-group select {
+      width: 100%;
+      padding: 10px 34px 10px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1e293b;
+      background: white;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .filter-group select:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 3px rgba(26,115,232,0.12);
+    }
+    .filter-group select:disabled {
+      background-color: #f8fafc;
+      color: #cbd5e1;
+      cursor: not-allowed;
+      border-color: #f1f5f9;
+    }
+
+    /* ── Results area ── */
+    .results-meta {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 14px;
+      font-weight: 500;
+    }
+
+    /* ── Status messages ── */
+    .status-msg {
+      text-align: center;
+      padding: 52px 16px;
+      color: #94a3b8;
+      font-size: 15px;
+    }
+    .status-msg .icon { font-size: 36px; display: block; margin-bottom: 10px; }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 52px;
+      color: #64748b;
+      font-size: 14px;
+    }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2.5px solid #e2e8f0;
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 18px 20px;
+      color: #dc2626;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Route card ── */
+    .route-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      border-left: 4px solid #e2e8f0;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .route-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+    .route-card.PRIORITY  { border-left-color: #ef4444; }
+    .route-card.REGULAR   { border-left-color: #3b82f6; }
+    .route-card.ECONOMY   { border-left-color: #22c55e; }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .service-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      color: white;
+    }
+    .service-badge.PRIORITY { background: #ef4444; }
+    .service-badge.REGULAR  { background: #3b82f6; }
+    .service-badge.ECONOMY  { background: #22c55e; }
+
+    .transit-pill {
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* ── Truck path ── */
+    .route-path {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .facility {
+      flex: 0 0 auto;
+      max-width: 230px;
+      min-width: 100px;
+    }
+    .facility-tag {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 4px;
+    }
+    .facility.source .facility-tag  { color: #f97316; }
+    .facility.dest   .facility-tag  { color: #8b5cf6; }
+
+    .facility-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1.3;
+    }
+    .facility-cutoff {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Animated road */
+    .road {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 0;
+    }
+    .road-track {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+    .road-line {
+      flex: 1;
+      height: 2px;
+      background: repeating-linear-gradient(
+        to right,
+        #94a3b8 0, #94a3b8 7px,
+        transparent 7px, transparent 14px
+      );
+    }
+    .truck {
+      font-size: 22px;
+      flex-shrink: 0;
+      animation: rumble .5s ease-in-out infinite alternate;
+    }
+    @keyframes rumble {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-2px); }
+    }
+    .arrowhead {
+      color: #94a3b8;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Responsive tweak for narrow screens */
+    @media (max-width: 480px) {
+      .route-path { flex-wrap: wrap; }
+      .road { width: 100%; order: 3; }
+      .facility { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚛 Ideal Transport Connections</h1>
+  <div class="meta">
+    <span class="dot"></span>
+    Live — Last updated: <span id="lastUpdated">Loading…</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="filter-card">
+    <h2>Filter Routes</h2>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Source Facility</label>
+        <select id="srcSel">
+          <option value="">All sources…</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Destination Facility</label>
+        <select id="dstSel" disabled>
+          <option value="">Select source first…</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Service Type</label>
+        <select id="svcSel" disabled>
+          <option value="">Select destination first…</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="loading">
+      <div class="spinner"></div>
+      Loading transport data…
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let routes = [];
+
+  /* ── Bootstrap ── */
+  (async () => {
+    try {
+      const r = await fetch('data.json');
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+
+      document.getElementById('lastUpdated').textContent =
+        new Date(data.lastUpdated).toLocaleString('en-IN', {
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+
+      routes = data.routes || [];
+      fillSource();
+      showPrompt('Select a source, destination, and service to view routes.', '🗺️');
+    } catch (e) {
+      document.getElementById('lastUpdated').textContent = 'Unavailable';
+      document.getElementById('results').innerHTML =
+        `<div class="error-msg">⚠️ Could not load transport data.<br><small>${e.message}</small></div>`;
+    }
+  })();
+
+  /* ── Populate source dropdown ── */
+  function fillSource() {
+    const srcs = [...new Set(routes.map(r => r.source_name))].sort();
+    const sel = document.getElementById('srcSel');
+    sel.innerHTML = '<option value="">All sources…</option>';
+    srcs.forEach(s => addOpt(sel, s));
+  }
+
+  /* ── Cascade: source → destination ── */
+  document.getElementById('srcSel').addEventListener('change', function () {
+    const src = this.value;
+    const dstSel = document.getElementById('dstSel');
+    const svcSel = document.getElementById('svcSel');
+
+    reset(dstSel, 'Select destination…', !src);
+    reset(svcSel, 'Select destination first…', true);
+    showPrompt('Now pick a destination.', '📍');
+
+    if (src) {
+      const dsts = [...new Set(routes.filter(r => r.source_name === src).map(r => r.destination_name))].sort();
+      dsts.forEach(d => addOpt(dstSel, d));
+    }
+  });
+
+  /* ── Cascade: destination → service ── */
+  document.getElementById('dstSel').addEventListener('change', function () {
+    const src = document.getElementById('srcSel').value;
+    const dst = this.value;
+    const svcSel = document.getElementById('svcSel');
+
+    reset(svcSel, 'Select service type…', !dst);
+    showPrompt('Now pick a service type.', '🏷️');
+
+    if (dst) {
+      const svcs = [...new Set(
+        routes.filter(r => r.source_name === src && r.destination_name === dst).map(r => r.service)
+      )].sort();
+      svcs.forEach(s => addOpt(svcSel, s));
+    }
+  });
+
+  /* ── Final: render results ── */
+  document.getElementById('svcSel').addEventListener('change', function () {
+    const src = document.getElementById('srcSel').value;
+    const dst = document.getElementById('dstSel').value;
+    const svc = this.value;
+    if (src && dst && svc) render(routes.filter(r =>
+      r.source_name === src && r.destination_name === dst && r.service === svc
+    ));
+  });
+
+  /* ── Render route cards ── */
+  function render(matches) {
+    const el = document.getElementById('results');
+    if (!matches.length) {
+      showPrompt('No active routes found for this combination.', '🔍');
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="results-meta">${matches.length} active route${matches.length > 1 ? 's' : ''} found</div>
+      ${matches.map(r => `
+      <div class="route-card ${r.service}">
+        <div class="card-top">
+          <span class="service-badge ${r.service}">${svcIcon(r.service)} ${r.service}</span>
+          <span class="transit-pill">🕐 ${fmtTransit(r.transit_time)}</span>
+        </div>
+        <div class="route-path">
+          <div class="facility source">
+            <div class="facility-tag">📦 Source</div>
+            <div class="facility-name">${r.source_name}</div>
+            <div class="facility-cutoff">⏰ Cutoff: ${fmtCutoff(r.source_cutoff)}</div>
+          </div>
+          <div class="road">
+            <div class="road-track">
+              <div class="road-line"></div>
+              <div class="truck">🚛</div>
+              <div class="road-line"></div>
+              <div class="arrowhead">▶</div>
+            </div>
+          </div>
+          <div class="facility dest">
+            <div class="facility-tag">📍 Destination</div>
+            <div class="facility-name">${r.destination_name}</div>
+          </div>
+        </div>
+      </div>`).join('')}
+    `;
+  }
+
+  /* ── Helpers ── */
+  function addOpt(sel, val) {
+    const o = document.createElement('option');
+    o.value = o.textContent = val;
+    sel.appendChild(o);
+  }
+
+  function reset(sel, placeholder, disabled) {
+    sel.innerHTML = `<option value="">${placeholder}</option>`;
+    sel.disabled = disabled;
+  }
+
+  function showPrompt(msg, icon) {
+    document.getElementById('results').innerHTML =
+      `<div class="status-msg"><span class="icon">${icon}</span>${msg}</div>`;
+  }
+
+  function fmtTransit(mins) {
+    mins = parseInt(mins, 10) || 0;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (!h) return `${m}m`;
+    if (!m) return `${h}h`;
+    return `${h}h ${m}m`;
+  }
+
+  function fmtCutoff(t) {
+    if (!t) return '—';
+    const [hh, mm] = t.split(':').map(Number);
+    const period = hh >= 12 ? 'PM' : 'AM';
+    return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${period}`;
+  }
+
+  function svcIcon(s) {
+    return s === 'PRIORITY' ? '⚡' : s === 'REGULAR' ? '📦' : '💰';
+  }
+</script>
+</body>
+</html>
