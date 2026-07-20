@@ -1,6 +1,4 @@
-
-
-   """
+"""
 process_data.py
 ---------------
 Downloads IDEAL_TRANSPORT_CONNECTION.csv and FACILITY_MAPPER.csv from
